@@ -2840,7 +2840,7 @@ dependencies = [
 
 [[package]]
 name = "spacescope"
-version = "1.1.0"
+version = "1.1.1"
 dependencies = [
  "chrono",
  "eframe",
@@ -2861,7 +2861,7 @@ dependencies = [
 
 [[package]]
 name = "spacescope-core"
-version = "1.1.0"
+version = "1.1.1"
 dependencies = [
  "crossbeam-deque",
  "libc",

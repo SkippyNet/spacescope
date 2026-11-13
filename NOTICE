@@ -1,0 +1,10 @@
+SpaceScope
+Copyright 2026 SkippyNet
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+It is built with open-source Rust crates, each under its own licence, among
+them egui and eframe (MIT OR Apache-2.0), notify (CC0-1.0), parking_lot and
+crossbeam (MIT OR Apache-2.0), rfd (MIT), trash (MIT), chrono (MIT OR
+Apache-2.0), image (MIT OR Apache-2.0) and windows-sys (MIT OR Apache-2.0).
+Run `cargo tree` for the complete list.

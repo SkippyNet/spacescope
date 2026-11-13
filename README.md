@@ -1,8 +1,21 @@
 # SpaceScope
 
-A fast disk-space treemap for Windows 10+ and Debian/Ubuntu, written in Rust.
-It is a from-scratch take on the idea behind SpaceSniffer: scan a drive or
-folder, and see every file and folder as a rectangle sized by the space it uses.
+[![CI](https://github.com/SkippyNet/spacescope/actions/workflows/ci.yml/badge.svg)](https://github.com/SkippyNet/spacescope/actions/workflows/ci.yml)
+[![Latest release](https://img.shields.io/github/v/release/SkippyNet/spacescope?label=release)](https://github.com/SkippyNet/spacescope/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/SkippyNet/spacescope/total?label=downloads)](https://github.com/SkippyNet/spacescope/releases)
+[![Licence](https://img.shields.io/badge/licence-Apache--2.0-blue)](LICENSE)
+[![Platforms](https://img.shields.io/badge/platforms-Windows%2010%2B%20%7C%20Debian%20%7C%20Ubuntu-informational)](#install)
+[![Built with Rust](https://img.shields.io/badge/built%20with-Rust-orange)](https://www.rust-lang.org)
+
+**See what is filling your disk.** SpaceScope is a fast, free disk-space
+analyzer for Windows 10+ and Debian/Ubuntu. It scans a drive or folder and
+draws every file and folder as a rectangle sized by the space it uses (a
+treemap), so the biggest things are the biggest shapes.
+
+**[Download](https://github.com/SkippyNet/spacescope/releases/latest)** ·
+**[Website](https://skippynet.github.io/spacescope/)** ·
+**[All releases](https://github.com/SkippyNet/spacescope/releases)** ·
+**[Changelog](CHANGELOG.md)**
 
 ![SpaceScope showing a folder as a treemap](docs/screenshot.png)
 
@@ -127,6 +140,37 @@ spacescope some/folder --size 1200x760 \
   --script "dbl:0.6,0.2;shot:zoomed.png;key:Backspace;rclick:0.2,0.5;shot:menu.png"
 ```
 
-## License
+## How it compares
 
-MIT. The name and the idea of a live treemap owe a debt to SpaceSniffer by Uderzo Software; no code is shared with it.
+The live treemap as a way to explore a disk was made popular on Windows by
+[SpaceSniffer](http://www.uderzo.it/main_products/space_sniffer/) from Uderzo
+Software, a freeware, closed-source, Windows-only tool, and that idea is the
+starting point here. SpaceScope shares no code with it and takes a different
+route technically:
+
+| | SpaceScope | Conventional folder-walking analyzers |
+|---|---|---|
+| **How a drive is read** | As administrator, one sequential read of the NTFS master file table: 2.4 s for 1.3 million files. Otherwise one system call per *folder*. | One or more system calls per folder, often one per *file*. Time grows with the number of folders and with disk seeks. |
+| **Cold cache** | The file table is one contiguous read, so a first scan after reboot costs the same as any other. | Every folder is a separate disk access; the first scan can take many times longer. |
+| **Permissions** | The file-table scan sees every file, so nothing is reported as unreadable. | Protected folders are skipped unless every one can be opened. |
+| **Hard links** | Counted once (Linux, and the file-table scan on Windows). | Usually counted once per link, inflating folders like `WinSxS`. |
+| **Real size on disk** | Compressed, sparse and cloud-placeholder files are shown at the space they actually occupy; alternate data streams and folder indexes are included in the file-table scan. | Often the nominal file size only. |
+| **Staying current** | Changed folders are re-read individually and merged in place; folders keep their position and identity. | A rescan of the subtree, or of everything. |
+| **Rendering** | One GPU draw call for the whole map; layout and filtering on background threads. | Commonly drawn rectangle by rectangle on the UI thread. |
+| **Memory** | 48 bytes per file plus its name: about 260 MB for a 1.3-million-file drive. | Varies; often an object per file. |
+| **Platforms** | Windows 10+, Debian, Ubuntu (X11 and Wayland). | Typically Windows only. |
+| **Source** | Open, Apache 2.0. | Varies. |
+
+The right-hand column describes the general approach, not a measurement of
+any one product; SpaceScope has not been benchmarked head-to-head against
+other tools. What other tools have that SpaceScope does not (yet): colour
+tags on files and customisable export templates.
+
+## Licence
+
+Copyright 2026 SkippyNet. Licensed under the
+[Apache License, Version 2.0](LICENSE): you may use, modify and redistribute
+SpaceScope, including commercially, provided you keep the licence and
+[NOTICE](NOTICE) with it and state significant changes. The licence includes
+an express patent grant from contributors and comes with no warranty.
+Contributions are accepted under the same terms.

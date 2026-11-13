@@ -5,6 +5,16 @@ by setting `version` in `Cargo.toml`, adding a section here, and pushing a
 matching `vX.Y.Z` tag; CI checks the three agree, builds both platforms and
 publishes the release.
 
+## 1.1.1
+
+- Licence changed from MIT to the Apache License 2.0, which adds an explicit
+  patent grant and contribution terms. Version 1.1.0 remains under MIT.
+- The website lists every release with its notes, downloads and sizes, and
+  offers the download for your own system first.
+- README and website explain how the scanner differs from walking the disk
+  folder by folder.
+- The Windows zip includes the licence and NOTICE files.
+
 ## 1.1.0
 
 - Windows: when run as administrator, drives and their top-level folders are
@@ -21,6 +31,6 @@ publishes the release.
 
 ## 1.0.0
 
-- First release: parallel scanner for Windows and Linux, live treemap with
+- Internal first version, not published: parallel scanner for Windows and Linux, live treemap with
   animated zoom, filters, on-disk and logical sizes, free-space tile, file
   actions, CSV export, dark and light themes, `sscan` command-line tool.
