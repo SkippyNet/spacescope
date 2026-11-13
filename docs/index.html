@@ -203,10 +203,10 @@
         <div>
           <p class="lede">SpaceScope scans a drive or folder and draws every file as a rectangle sized by the space it takes. The biggest things are the biggest shapes.</p>
           <div class="actions">
-            <a class="btn" id="dl-win" href="https://github.com/SkippyNet/spacescope/releases/latest/download/SpaceScope-windows-x64.zip">Download for Windows<small>zip, no install needed</small></a>
+            <a class="btn" id="dl-win" href="https://github.com/SkippyNet/spacescope/releases/latest/download/SpaceScope-windows-x64.zip">Download for Windows<small>64-bit zip, no install needed</small></a>
             <a class="btn" id="dl-linux" href="https://github.com/SkippyNet/spacescope/releases/latest/download/spacescope-amd64.deb">Download for Linux<small>.deb for Debian and Ubuntu</small></a>
           </div>
-          <p class="ver" id="latest-line">Free. No sign-up, no installer on Windows.</p>
+          <p class="ver"><span id="latest-line">Free. No sign-up, no installer on Windows.</span> On an older PC, get the <a href="https://github.com/SkippyNet/spacescope/releases/latest/download/SpaceScope-windows-x86.zip">32-bit Windows version</a>.</p>
         </div>
       </div>
       <div class="tile t-speed">
@@ -288,7 +288,7 @@
       <div class="install">
         <div>
           <h3>Windows</h3>
-          <p>Unzip and run <strong>spacescope.exe</strong>. To use the fast drive scan, choose More, then Restart as administrator.</p>
+          <p>Unzip and run <strong>spacescope.exe</strong>. Almost every PC wants the 64-bit download; the 32-bit one is for 32-bit Windows. To use the fast drive scan, choose More, then Restart as administrator.</p>
           <pre>spacescope.exe C:\Users\me</pre>
         </div>
         <div>
@@ -296,6 +296,25 @@
           <p>Ubuntu 22.04 or newer, Debian 12 or newer.</p>
           <pre>sudo apt install ./spacescope-amd64.deb
 spacescope</pre>
+        </div>
+      </div>
+    </section>
+
+    <section id="signing">
+      <h2>Code signing</h2>
+      <p class="intro">SpaceScope uses the SignPath Foundation for code signing of its Windows programs. Free code signing is provided by <a href="https://about.signpath.io/">SignPath.io</a>, with a certificate by the <a href="https://signpath.org/">SignPath Foundation</a>.</p>
+      <div class="cols">
+        <div>
+          <h3>What gets signed</h3>
+          <p>Only files built by the public GitHub Actions workflow from a tagged commit of this repository. Nothing built on a personal computer is ever signed. Versions up to 1.2.0 were published before signing was set up and are unsigned.</p>
+        </div>
+        <div>
+          <h3>Who decides</h3>
+          <p>Committers, reviewers and approvers: the repository owner, <a href="https://github.com/SkippyNet">SkippyNet</a>. Every change reaches the main branch through a pull request that must pass the build on all platforms.</p>
+        </div>
+        <div>
+          <h3>Your privacy</h3>
+          <p>This program will not transfer any information to other networked systems unless specifically requested by the user or the person installing or operating it. See the <a href="privacy.html">privacy policy</a>.</p>
         </div>
       </div>
     </section>
@@ -310,7 +329,7 @@ spacescope</pre>
   </main>
 
   <footer>
-    SpaceScope is free software under the <a href="https://github.com/SkippyNet/spacescope/blob/main/LICENSE">Apache License 2.0</a>: use it, change it and share it, with no warranty. <a href="https://github.com/SkippyNet/spacescope/issues">Report a problem</a>.
+    SpaceScope is free software under the <a href="https://github.com/SkippyNet/spacescope/blob/main/LICENSE">Apache License 2.0</a>: use it, change it and share it, with no warranty. <a href="privacy.html">Privacy policy</a>. <a href="#signing">Code signing policy</a>. <a href="https://github.com/SkippyNet/spacescope/issues">Report a problem</a>.
   </footer>
 </div>
 <script>
@@ -325,7 +344,8 @@ spacescope</pre>
 
   function size(n) { return n > 1048576 ? (n / 1048576).toFixed(1) + " MB" : Math.round(n / 1024) + " KB"; }
   function label(name) {
-    if (/\.zip$/i.test(name)) return "Windows (zip)";
+    if (/x86\.zip$/i.test(name)) return "Windows 32-bit (zip)";
+    if (/\.zip$/i.test(name)) return "Windows 64-bit (zip)";
     if (/\.deb$/i.test(name)) return "Debian and Ubuntu (.deb)";
     return name;
   }

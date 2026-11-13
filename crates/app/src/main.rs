@@ -27,6 +27,8 @@ fn run(args: app::Args, glow: bool) -> eframe::Result {
         .with_app_id("spacescope")
         .with_inner_size([w, h])
         .with_min_inner_size([680.0, 440.0])
+        // Open filling the screen; the size above is what "restore" returns to.
+        .with_maximized(args.size.is_none())
         .with_icon(icon);
     let mut options = eframe::NativeOptions {
         viewport,
@@ -35,8 +37,8 @@ fn run(args: app::Args, glow: bool) -> eframe::Result {
         } else {
             eframe::Renderer::Wgpu
         },
-        // Test runs must not inherit or disturb the saved window geometry.
-        persist_window: args.screenshot.is_none() && args.script.is_none() && args.size.is_none(),
+        // Always start maximised rather than restoring an old window size.
+        persist_window: false,
         ..Default::default()
     };
     // A disk tool has no business waking the discrete GPU.
