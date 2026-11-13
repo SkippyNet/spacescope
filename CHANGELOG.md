@@ -5,6 +5,15 @@ by setting `version` in `Cargo.toml`, adding a section here, and pushing a
 matching `vX.Y.Z` tag; CI checks the three agree, builds both platforms and
 publishes the release.
 
+## 1.2.0
+
+- A 32-bit Windows build (`SpaceScope-windows-x86.zip`) alongside the 64-bit
+  one.
+- The window opens maximised. `F11` toggles full screen.
+- Release builds are prepared for code signing through the SignPath
+  Foundation; this version itself is still unsigned.
+- The website has a privacy policy and a code signing policy.
+
 ## 1.1.1
 
 - Licence changed from MIT to the Apache License 2.0, which adds an explicit

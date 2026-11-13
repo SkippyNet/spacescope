@@ -36,7 +36,7 @@ treemap), so the biggest things are the biggest shapes.
 
 Downloads are on the [releases page](https://github.com/SkippyNet/spacescope/releases/latest); there is also a [project page](https://skippynet.github.io/spacescope/).
 
-**Windows:** unzip `SpaceScope-windows-x64.zip` and run `spacescope.exe`. Nothing to install, no administrator rights needed. For the fast drive scan choose **More → Restart as administrator**.
+**Windows:** unzip `SpaceScope-windows-x64.zip` (or `SpaceScope-windows-x86.zip` on 32-bit Windows) and run `spacescope.exe`. The window opens maximised; `F11` switches to full screen. Nothing to install, no administrator rights needed. For the fast drive scan choose **More → Restart as administrator**.
 
 **Debian / Ubuntu** (22.04+ / Debian 12+):
 
@@ -70,6 +70,7 @@ Build the `.deb` on the oldest release you want to support (CI uses Ubuntu 22.04
 | More / less detail | `+` / `−` buttons | `+` / `-` |
 | Filter | | `Ctrl+F`, `Esc` clears |
 | Rescan the current folder | refresh button | `F5` |
+| Full screen | | `F11` |
 
 You can also start a scan directly: `spacescope C:\Users\me`, or drop a folder onto the window.
 
@@ -165,6 +166,24 @@ The right-hand column describes the general approach, not a measurement of
 any one product; SpaceScope has not been benchmarked head-to-head against
 other tools. What other tools have that SpaceScope does not (yet): colour
 tags on files and customisable export templates.
+
+## Code signing policy
+
+SpaceScope uses the SignPath Foundation for code signing of its Windows
+programs. Free code signing is provided by [SignPath.io](https://about.signpath.io/),
+with a certificate by the [SignPath Foundation](https://signpath.org/).
+
+- **What gets signed:** only files built by the public GitHub Actions
+  workflow from a tagged commit of this repository. Nothing built on a
+  personal computer is signed. Versions up to 1.2.0 predate signing and are
+  unsigned.
+- **Committers, reviewers and approvers:** the repository owner,
+  [SkippyNet](https://github.com/SkippyNet). Every change reaches `main`
+  through a pull request that must pass the build on all platforms.
+- **Privacy:** this program will not transfer any information to other
+  networked systems unless specifically requested by the user or the person
+  installing or operating it. See the
+  [privacy policy](https://skippynet.github.io/spacescope/privacy.html).
 
 ## Licence
 

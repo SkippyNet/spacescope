@@ -11,23 +11,32 @@ env:
 
 jobs:
   build:
+    name: build (${{ matrix.name }})
     strategy:
       fail-fast: false
       matrix:
         include:
           - os: windows-latest
             name: windows-x64
+            target: x86_64-pc-windows-msvc
+          - os: windows-latest
+            name: windows-x86
+            target: i686-pc-windows-msvc
           # Built on the oldest supported release so the binary also runs on
           # Ubuntu 22.04+ and Debian 12+.
           - os: ubuntu-22.04
             name: linux-x64
+            target: x86_64-unknown-linux-gnu
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy, rustfmt
+          targets: ${{ matrix.target }}
       - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
 
       # A release tag must name the version the binaries report.
       - name: Tag matches version
@@ -43,25 +52,58 @@ jobs:
       - name: Format
         run: cargo fmt --all -- --check
       - name: Lint
-        run: cargo clippy --release --all-targets -- -D warnings
+        run: cargo clippy --release --all-targets --target ${{ matrix.target }} -- -D warnings
       - name: Test
-        run: cargo test --release
-
-      - name: Package (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: ./scripts/package-windows.ps1
-      - name: Package (Debian)
-        if: runner.os == 'Linux'
-        run: ./scripts/package-deb.sh
+        run: cargo test --release --target ${{ matrix.target }}
+      - name: Build
+        run: cargo build --release --target ${{ matrix.target }}
 
       - name: Binary reports the right version
         shell: bash
         run: |
           version=$(grep -m1 '^version = ' Cargo.toml | cut -d'"' -f2)
-          out=$(./target/release/sscan --version)
+          out=$(./target/${{ matrix.target }}/release/sscan --version)
           echo "$out"
           [ "$out" = "sscan $version" ]
+
+      # --- Windows code signing (SignPath Foundation) ------------------------
+      # Runs for release tags once the repository has been given its SignPath
+      # organisation id (Actions variable) and API token (Actions secret).
+      # Until then releases are built exactly the same way, unsigned.
+      - name: Upload unsigned binaries for signing
+        id: unsigned
+        if: runner.os == 'Windows' && startsWith(github.ref, 'refs/tags/v') && vars.SIGNPATH_ORGANIZATION_ID != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: unsigned-${{ matrix.name }}
+          path: |
+            target/${{ matrix.target }}/release/spacescope.exe
+            target/${{ matrix.target }}/release/sscan.exe
+          if-no-files-found: error
+      - name: Sign with SignPath
+        if: steps.unsigned.outcome == 'success'
+        uses: signpath/github-action-submit-signing-request@v1
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG || 'spacescope' }}
+          signing-policy-slug: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG || 'release-signing' }}
+          artifact-configuration-slug: ${{ vars.SIGNPATH_ARTIFACT_CONFIGURATION_SLUG || 'windows-binaries' }}
+          github-artifact-id: ${{ steps.unsigned.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: signed
+
+      - name: Package (Windows, signed)
+        if: runner.os == 'Windows' && steps.unsigned.outcome == 'success'
+        shell: pwsh
+        run: ./scripts/package-windows.ps1 -Name ${{ matrix.name }} -ExeDir signed
+      - name: Package (Windows)
+        if: runner.os == 'Windows' && steps.unsigned.outcome != 'success'
+        shell: pwsh
+        run: ./scripts/package-windows.ps1 -Name ${{ matrix.name }} -ExeDir target/${{ matrix.target }}/release
+      - name: Package (Debian)
+        if: runner.os == 'Linux'
+        run: ./scripts/package-deb.sh ${{ matrix.target }}
 
       - uses: actions/upload-artifact@v4
         with:
@@ -82,6 +124,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           path: dist
+          pattern: spacescope-*
           merge-multiple: true
       - name: Publish release
         env:

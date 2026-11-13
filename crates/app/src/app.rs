@@ -542,6 +542,11 @@ impl App {
             args,
         };
         app.refresh_drives(ctx);
+        // Fill the screen on start. The builder flag alone is not honoured on
+        // every platform once an explicit size is also given.
+        if app.args.size.is_none() {
+            ctx.send_viewport_cmd(egui::ViewportCommand::Maximized(true));
+        }
         if let Some(path) = app.args.path.clone() {
             app.start_scan(ctx, &path);
         }
@@ -1934,6 +1939,12 @@ impl eframe::App for App {
     fn update(&mut self, ctx: &Context, _frame: &mut eframe::Frame) {
         self.test_hooks(ctx);
         self.poll_background(ctx);
+
+        // F11 toggles true full screen (no title bar or taskbar).
+        if ctx.input(|i| i.key_pressed(Key::F11)) {
+            let on = ctx.input(|i| i.viewport().fullscreen.unwrap_or(false));
+            ctx.send_viewport_cmd(egui::ViewportCommand::Fullscreen(!on));
+        }
 
         let dropped = ctx.input(|i| i.raw.dropped_files.iter().find_map(|f| f.path.clone()));
         if let Some(p) = dropped {
