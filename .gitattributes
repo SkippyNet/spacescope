@@ -1,0 +1,5 @@
+* text=auto eol=lf
+*.png binary
+*.ico binary
+*.sh text eol=lf
+*.desktop text eol=lf

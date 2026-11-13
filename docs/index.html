@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SpaceScope: see what is filling your disk</title>
+<meta name="description" content="A fast disk-space treemap for Windows and Linux. Scans a whole drive in seconds and keeps the map current as files change.">
+<link rel="icon" href="icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #e9ecf1;
+    --frame: #c9d0db;
+    --ink: #12151c;
+    --ink-soft: #4a5263;
+    --blue: #62acf3;
+    --coral: #ee6f6b;
+    --green: #72cf83;
+    --amber: #f0c355;
+    --violet: #b692f0;
+    --orange: #ef914f;
+    --teal: #45c7bf;
+    --slate: #3d485e;
+    --gap: 3px;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font: 400 1.0625rem/1.55 "Archivo", system-ui, sans-serif;
+    font-stretch: 100%;
+  }
+  a { color: inherit; }
+  a:focus-visible, button:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 20px; }
+
+  header.top {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 0 14px;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1.15rem; text-decoration: none; }
+  .brand img { width: 30px; height: 30px; display: block; }
+  header.top nav a { margin-left: 22px; font-weight: 500; text-underline-offset: 4px; }
+
+  /* The hero is a treemap: each tile's area is how much it matters. */
+  .map {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    grid-template-rows: repeat(8, clamp(64px, 9.2vh, 86px));
+    gap: var(--gap);
+    padding: var(--gap);
+    background: var(--frame);
+  }
+  .tile {
+    position: relative;
+    padding: 14px 16px;
+    overflow: hidden;
+    color: var(--ink);
+    /* Same top-left light the app paints on every file. */
+    background-image: linear-gradient(135deg, rgba(255,255,255,.22), rgba(255,255,255,0) 45%, rgba(0,0,0,.13));
+  }
+  .tile h2 { margin: 0; font-weight: 700; font-size: 1.05rem; line-height: 1.2; }
+  .tile p { margin: 4px 0 0; font-size: .95rem; line-height: 1.35; max-width: 34ch; }
+  .tile .big { font-weight: 800; font-stretch: 70%; font-size: clamp(2.4rem, 5.2vw, 4.4rem); line-height: .95; letter-spacing: -.01em; }
+
+  .t-main   { grid-column: 1 / 8;  grid-row: 1 / 7; background-color: var(--blue); padding: clamp(18px, 3vw, 40px); display: flex; flex-direction: column; justify-content: space-between; }
+  .t-speed  { grid-column: 8 / 13; grid-row: 1 / 4; background-color: var(--coral); }
+  .t-live   { grid-column: 8 / 11; grid-row: 4 / 7; background-color: var(--green); }
+  .t-filter { grid-column: 11 / 13; grid-row: 4 / 7; background-color: var(--amber); }
+  .t-win    { grid-column: 1 / 4;  grid-row: 7 / 9; background-color: var(--violet); }
+  .t-linux  { grid-column: 4 / 7;  grid-row: 7 / 9; background-color: var(--orange); }
+  .t-open   { grid-column: 7 / 10; grid-row: 7 / 9; background-color: var(--teal); }
+  .t-src    { grid-column: 10 / 13; grid-row: 7 / 9; background-color: var(--slate); color: #f1f3f7; }
+
+  .t-main h1 {
+    margin: 0;
+    font-weight: 800;
+    font-stretch: 68%;
+    font-size: clamp(2.9rem, 8.6vw, 7.4rem);
+    line-height: .88;
+    letter-spacing: -.015em;
+    text-wrap: balance;
+  }
+  .t-main .lede { font-size: clamp(1.05rem, 1.5vw, 1.25rem); max-width: 46ch; margin: 18px 0 0; line-height: 1.4; }
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
+  .btn {
+    display: inline-block; padding: 13px 20px;
+    background: var(--ink); color: #fff; text-decoration: none;
+    font-weight: 600; font-size: 1rem; line-height: 1.2;
+  }
+  .btn small { display: block; font-weight: 400; font-size: .8rem; opacity: .75; margin-top: 2px; }
+  .btn.quiet { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 2px var(--ink); }
+  .btn:hover { background: #000; color: #fff; }
+  .tile code { font: inherit; font-weight: 600; background: rgba(18,21,28,.12); padding: 1px 6px; }
+  .t-src a { font-weight: 600; text-underline-offset: 4px; }
+
+  /* One load moment: the map fills in the way a scan does. */
+  @media (prefers-reduced-motion: no-preference) {
+    .tile { animation: grow .5s cubic-bezier(.2,.7,.2,1) both; transform-origin: top left; }
+    .t-speed { animation-delay: .08s; } .t-live { animation-delay: .16s; } .t-filter { animation-delay: .22s; }
+    .t-win { animation-delay: .28s; } .t-linux { animation-delay: .33s; } .t-open { animation-delay: .38s; } .t-src { animation-delay: .43s; }
+    @keyframes grow { from { transform: scale(.2); opacity: 0; } }
+  }
+
+  section { padding: 72px 0 0; }
+  section h2 { font-weight: 800; font-stretch: 75%; font-size: clamp(1.9rem, 3.6vw, 2.9rem); line-height: 1; margin: 0 0 22px; }
+  .shot { background: var(--frame); padding: var(--gap); }
+  .shot img { display: block; width: 100%; height: auto; }
+  .shot + p { color: var(--ink-soft); font-size: .95rem; margin: 10px 0 0; }
+
+  .cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 36px; }
+  .cols h3 { margin: 0 0 6px; font-size: 1.1rem; font-weight: 700; }
+  .cols p { margin: 0; color: var(--ink-soft); }
+
+  table { border-collapse: collapse; width: 100%; max-width: 760px; font-variant-numeric: tabular-nums; }
+  th, td { text-align: left; padding: 11px 18px 11px 0; border-bottom: 2px solid var(--frame); }
+  th { font-weight: 600; color: var(--ink-soft); font-size: .95rem; }
+  td.n, th.n { text-align: right; padding-right: 0; }
+  .note { color: var(--ink-soft); max-width: 70ch; margin-top: 16px; }
+
+  .install { display: grid; grid-template-columns: 1fr 1fr; gap: 36px; }
+  .install h3 { margin: 0 0 8px; font-size: 1.1rem; }
+  .install p { margin: 0 0 10px; color: var(--ink-soft); }
+  pre { margin: 0; background: var(--ink); color: #e9ecf1; padding: 14px 16px; overflow-x: auto; font: 500 .92rem/1.5 ui-monospace, "Cascadia Mono", Consolas, monospace; }
+
+  footer { margin-top: 84px; padding: 26px 0 40px; border-top: 2px solid var(--frame); color: var(--ink-soft); font-size: .95rem; }
+
+  @media (max-width: 860px) {
+    .map { grid-template-columns: 1fr 1fr; grid-template-rows: none; grid-auto-rows: minmax(120px, auto); }
+    .map .tile { grid-column: auto; grid-row: auto; }
+    .map .t-main, .map .t-speed { grid-column: 1 / 3; }
+    .cols, .install { grid-template-columns: 1fr; gap: 26px; }
+    header.top nav a:first-child { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <a class="brand" href="./"><img src="icon.png" alt="">SpaceScope</a>
+    <nav>
+      <a href="#numbers">Measurements</a>
+      <a href="https://github.com/SkippyNet/spacescope">Source on GitHub</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="map">
+      <div class="tile t-main">
+        <h1>See what is filling your disk</h1>
+        <div>
+          <p class="lede">SpaceScope scans a drive or folder and draws every file as a rectangle sized by the space it takes. The biggest things are the biggest shapes.</p>
+          <div class="actions">
+            <a class="btn" href="https://github.com/SkippyNet/spacescope/releases/latest/download/SpaceScope-windows-x64.zip">Download for Windows<small>zip, no install needed</small></a>
+            <a class="btn" href="https://github.com/SkippyNet/spacescope/releases/latest/download/spacescope-amd64.deb">Download for Linux<small>.deb for Debian and Ubuntu</small></a>
+          </div>
+        </div>
+      </div>
+      <div class="tile t-speed">
+        <div class="big">2.4 s</div>
+        <p>to read a 712 GB system drive holding 1.3 million files, straight from the NTFS file table.</p>
+      </div>
+      <div class="tile t-live">
+        <h2>Stays current</h2>
+        <p>Delete, download or build something and the map redraws itself. No rescan.</p>
+      </div>
+      <div class="tile t-filter">
+        <h2>Filter as you type</h2>
+        <p><code>*.mp4; &gt;100mb</code></p>
+      </div>
+      <div class="tile t-win">
+        <h2>Windows 10 and 11</h2>
+        <p>One exe. Nothing to install.</p>
+      </div>
+      <div class="tile t-linux">
+        <h2>Debian and Ubuntu</h2>
+        <p>X11 and Wayland.</p>
+      </div>
+      <div class="tile t-open">
+        <h2>Free and open</h2>
+        <p>MIT licence, written in Rust.</p>
+      </div>
+      <div class="tile t-src">
+        <h2>Releases</h2>
+        <p><a href="https://github.com/SkippyNet/spacescope/releases">All versions and notes</a></p>
+      </div>
+    </div>
+
+    <section>
+      <h2>What you get</h2>
+      <div class="shot"><img src="screenshot.png" width="1600" height="950" alt="SpaceScope showing a disk as nested rectangles: videos in red, virtual machine images in pink, backups in orange, music in violet, photos in amber, each labelled with its name and size."></div>
+      <p>Colour is the kind of file. Double-click a folder to zoom in, right-click for open, show in file manager, copy path and move to trash.</p>
+    </section>
+
+    <section>
+      <h2>Why it is quick</h2>
+      <div class="cols">
+        <div>
+          <h3>It asks the disk once</h3>
+          <p>Run as administrator on Windows and SpaceScope reads the NTFS master file table in one pass instead of opening every folder. Without admin rights it still gets a whole folder's sizes in a single system call.</p>
+        </div>
+        <div>
+          <h3>It only draws what you can see</h3>
+          <p>Folders too small to read stay closed and tiny files merge into one tile, so a million files become a few thousand rectangles, drawn in one batch.</p>
+        </div>
+        <div>
+          <h3>It never blocks the window</h3>
+          <p>Scanning, filtering and layout run on their own threads. You can zoom around while the scan is still going.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="numbers">
+      <h2>Measured, not promised</h2>
+      <table>
+        <thead><tr><th>Scan</th><th class="n">Files and folders</th><th class="n">Time</th></tr></thead>
+        <tbody>
+          <tr><td>Whole C: drive, as administrator</td><td class="n">1,311,000</td><td class="n">2.4 s</td></tr>
+          <tr><td>Whole C: drive, standard user</td><td class="n">1,350,000</td><td class="n">8 to 10 s</td></tr>
+          <tr><td>Home folder, Windows</td><td class="n">585,000</td><td class="n">1.4 to 1.9 s</td></tr>
+          <tr><td>Home folder, Ubuntu</td><td class="n">491,000</td><td class="n">2.3 s</td></tr>
+        </tbody>
+      </table>
+      <p class="note">One machine: 16 logical cores, NVMe SSD, Windows 11 with Defender on, Ubuntu under WSL2, files already in the system cache. The first scan after a reboot is slower for a standard user (49 s for the whole drive). Totals were checked against PowerShell and <code style="font:inherit;font-weight:600">du</code> and match to the byte.</p>
+    </section>
+
+    <section>
+      <h2>Install</h2>
+      <div class="install">
+        <div>
+          <h3>Windows</h3>
+          <p>Unzip and run <strong>spacescope.exe</strong>. To use the fast drive scan, choose More, then Restart as administrator.</p>
+          <pre>spacescope.exe C:\Users\me</pre>
+        </div>
+        <div>
+          <h3>Debian and Ubuntu</h3>
+          <p>Ubuntu 22.04 or newer, Debian 12 or newer.</p>
+          <pre>sudo apt install ./spacescope-amd64.deb
+spacescope</pre>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    SpaceScope is an independent project. The idea of a live treemap owes a debt to SpaceSniffer by Uderzo Software; no code is shared with it.
+  </footer>
+</div>
+</body>
+</html>

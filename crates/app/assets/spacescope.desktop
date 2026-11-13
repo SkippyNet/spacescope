@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=SpaceScope
+GenericName=Disk Usage Analyzer
+Comment=See what is filling your disk
+Exec=spacescope %f
+Icon=spacescope
+Terminal=false
+Categories=Utility;System;Filesystem;
+MimeType=inode/directory;
+StartupWMClass=spacescope
+Keywords=disk;space;usage;treemap;cleanup;

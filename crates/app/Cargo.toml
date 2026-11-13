@@ -1,0 +1,65 @@
+[package]
+name = "spacescope"
+description = "A fast, good-looking disk space treemap for Windows and Linux"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+
+[[bin]]
+name = "spacescope"
+path = "src/main.rs"
+
+[dependencies]
+spacescope-core = { path = "../core" }
+eframe = { version = "0.31.1", default-features = false, features = [
+    "wgpu",
+    "glow",
+    "default_fonts",
+    "wayland",
+    "x11",
+    "persistence",
+] }
+egui = "0.31.1"
+serde = { version = "1", features = ["derive"] }
+rfd = "0.15"
+trash = "5"
+open = "5"
+notify = "8"
+chrono = { version = "0.4", default-features = false, features = ["clock"] }
+memmap2 = "0.9"
+image = { version = "0.25", default-features = false, features = ["png"] }
+
+[target.'cfg(windows)'.dependencies]
+# eframe leaves the Direct3D 12 backend off unless asked.
+wgpu = { version = "24", default-features = false, features = ["dx12"] }
+windows-sys = { version = "0.59", features = [
+    "Win32_Foundation",
+    "Win32_Security",
+    "Win32_Storage_FileSystem",
+    "Win32_System_Threading",
+    "Win32_UI_Shell",
+    "Win32_UI_WindowsAndMessaging",
+] }
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
+[target.'cfg(windows)'.build-dependencies]
+winresource = "0.1"
+
+[package.metadata.deb]
+name = "spacescope"
+maintainer = "SkippyNet"
+section = "utils"
+priority = "optional"
+depends = "$auto, libxkbcommon0, libxkbcommon-x11-0, libegl1, libgl1, libwayland-client0, libx11-6, libx11-xcb1, libxcursor1, libxi6"
+recommends = "xdg-desktop-portal"
+extended-description = "SpaceScope scans a folder or drive in parallel and shows where the space went as a live, zoomable treemap."
+assets = [
+    ["target/release/spacescope", "usr/bin/", "755"],
+    ["target/release/sscan", "usr/bin/", "755"],
+    ["assets/spacescope.desktop", "usr/share/applications/", "644"],
+    ["assets/spacescope.png", "usr/share/icons/hicolor/256x256/apps/", "644"],
+]

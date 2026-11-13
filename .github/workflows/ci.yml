@@ -1,0 +1,97 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            name: windows-x64
+          # Built on the oldest supported release so the binary also runs on
+          # Ubuntu 22.04+ and Debian 12+.
+          - os: ubuntu-22.04
+            name: linux-x64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - uses: Swatinem/rust-cache@v2
+
+      # A release tag must name the version the binaries report.
+      - name: Tag matches version
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        run: |
+          version=$(grep -m1 '^version = ' Cargo.toml | cut -d'"' -f2)
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::tag $GITHUB_REF_NAME does not match Cargo.toml version $version"
+            exit 1
+          fi
+
+      - name: Format
+        run: cargo fmt --all -- --check
+      - name: Lint
+        run: cargo clippy --release --all-targets -- -D warnings
+      - name: Test
+        run: cargo test --release
+
+      - name: Package (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./scripts/package-windows.ps1
+      - name: Package (Debian)
+        if: runner.os == 'Linux'
+        run: ./scripts/package-deb.sh
+
+      - name: Binary reports the right version
+        shell: bash
+        run: |
+          version=$(grep -m1 '^version = ' Cargo.toml | cut -d'"' -f2)
+          out=$(./target/release/sscan --version)
+          echo "$out"
+          [ "$out" = "sscan $version" ]
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: spacescope-${{ matrix.name }}
+          path: |
+            dist/*.zip
+            dist/*.deb
+          if-no-files-found: error
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ls -l dist
+          notes=$(awk -v v="${GITHUB_REF_NAME#v}" '
+            $0 ~ "^## " v { on = 1; next }
+            on && /^## / { exit }
+            on { print }' CHANGELOG.md)
+          gh release create "$GITHUB_REF_NAME" dist/*.zip dist/*.deb \
+            --title "SpaceScope ${GITHUB_REF_NAME#v}" \
+            --notes "${notes:-See CHANGELOG.md}"
